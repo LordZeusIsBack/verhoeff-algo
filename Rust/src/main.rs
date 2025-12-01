@@ -75,12 +75,12 @@ fn build_tables(elements: &Vec<[u8;5]>) -> (Vec<Vec<u8>>, Vec<[u8;10]>, Vec<u8>)
     let n = elements.len(); // should be 10
     assert_eq!(n, 10);
 
-    let mut D = vec![vec![0u8; n]; n];
+    let mut d = vec![vec![0u8; n]; n];
     for a in 0..n {
         for b in 0..n {
             let comp = compose(&elements[a], &elements[b]);
             let lab = find_label(&comp, elements).expect("composition must exist in group");
-            D[a][b] = lab as u8;
+            d[a][b] = lab as u8;
         }
     }
 
@@ -89,7 +89,7 @@ fn build_tables(elements: &Vec<[u8;5]>) -> (Vec<Vec<u8>>, Vec<[u8;10]>, Vec<u8>)
     for a in 0..n {
         let mut found = false;
         for b in 0..n {
-            if D[a][b] == 0 {
+            if d[a][b] == 0 {
                 inv[a] = b as u8;
                 found = true;
                 break;
@@ -103,11 +103,11 @@ fn build_tables(elements: &Vec<[u8;5]>) -> (Vec<Vec<u8>>, Vec<[u8;10]>, Vec<u8>)
     // σ in array form: σ[0]=1, σ[1]=5, σ[2]=7, σ[3]=6, σ[4]=2, σ[5]=8, σ[6]=3, σ[7]=0, σ[8]=9, σ[9]=4
     let sigma = [1u8, 5, 7, 6, 2, 8, 3, 0, 9, 4];
     
-    let mut P_rows: Vec<[u8;10]> = Vec::with_capacity(8);
+    let mut p_rows: Vec<[u8;10]> = Vec::with_capacity(8);
     let mut current = [0u8, 1, 2, 3, 4, 5, 6, 7, 8, 9]; // P[0] = identity
     
     for _ in 0..8 {
-        P_rows.push(current);
+        p_rows.push(current);
         
         // Compute next: P[i+1] = σ ∘ P[i]
         // This means: next[d] = sigma[current[d]]
@@ -118,13 +118,13 @@ fn build_tables(elements: &Vec<[u8;5]>) -> (Vec<Vec<u8>>, Vec<[u8;10]>, Vec<u8>)
         current = next;
     }
 
-    (D, P_rows, inv)
+    (d, p_rows, inv)
 }
 
 
-fn print_table_d(D: &Vec<Vec<u8>>) {
+fn print_table_d(d: &Vec<Vec<u8>>) {
     println!("D = [");
-    for row in D {
+    for row in d {
         print!("  [");
         for (i, v) in row.iter().enumerate() {
             if i + 1 < row.len() {
@@ -138,9 +138,9 @@ fn print_table_d(D: &Vec<Vec<u8>>) {
     println!("]");
 }
 
-fn print_table_p(P: &Vec<[u8;10]>) {
+fn print_table_p(p: &Vec<[u8;10]>) {
     println!("P = [");
-    for row in P {
+    for row in p {
         print!("  [");
         for i in 0..10 {
             if i + 1 < 10 {
@@ -167,83 +167,9 @@ fn print_inv(inv: &Vec<u8>) {
     println!("\n]");
 }
 
-// STANDARD canonical Verhoeff tables (as seen earlier) for comparison:
-fn standard_tables() -> (Vec<Vec<u8>>, Vec<[u8;10]>, Vec<u8>) {
-    let D = vec![
-        vec![0,1,2,3,4,5,6,7,8,9],
-        vec![1,2,3,4,0,6,7,8,9,5],
-        vec![2,3,4,0,1,7,8,9,5,6],
-        vec![3,4,0,1,2,8,9,5,6,7],
-        vec![4,0,1,2,3,9,5,6,7,8],
-        vec![5,9,8,7,6,0,4,3,2,1],
-        vec![6,5,9,8,7,1,0,4,3,2],
-        vec![7,6,5,9,8,2,1,0,4,3],
-        vec![8,7,6,5,9,3,2,1,0,4],
-        vec![9,8,7,6,5,4,3,2,1,0],
-    ];
-    let P = vec![
-        [0,1,2,3,4,5,6,7,8,9],
-        [1,5,7,6,2,8,3,0,9,4],
-        [5,8,0,3,7,9,6,1,4,2],
-        [8,9,1,6,0,4,3,5,2,7],
-        [9,4,5,3,1,2,6,8,7,0],
-        [4,2,8,6,5,7,3,9,0,1],
-        [2,7,9,3,8,0,6,4,1,5],
-        [7,0,4,6,9,1,3,2,5,8],
-    ];
-    let inv = vec![0,4,3,2,1,5,6,7,8,9];
-    (D, P, inv)
-}
-
-fn compare_and_print(D: &Vec<Vec<u8>>, P: &Vec<[u8;10]>, inv: &Vec<u8>) {
-    let (stdD, stdP, stdinv) = standard_tables();
-
-    let mut ok = true;
-    if D.len() != stdD.len() || D[0].len() != stdD[0].len() {
-        println!("D-table size mismatch.");
-        ok = false;
-    } else {
-        for i in 0..D.len() {
-            for j in 0..D[i].len() {
-                if D[i][j] != stdD[i][j] {
-                    println!("D mismatch at [{},{}]: got {} expected {}", i, j, D[i][j], stdD[i][j]);
-                    ok = false;
-                }
-            }
-        }
-    }
-
-    if P.len() != stdP.len() {
-        println!("P-table row count mismatch.");
-        ok = false;
-    } else {
-        for i in 0..P.len() {
-            for j in 0..10 {
-                if P[i][j] != stdP[i][j] {
-                    println!("P mismatch at row {}, col {}: got {} expected {}", i, j, P[i][j], stdP[i][j]);
-                    ok = false;
-                }
-            }
-        }
-    }
-
-    for i in 0..inv.len() {
-        if inv[i] != stdinv[i] {
-            println!("inv mismatch at {}: got {} expected {}", i, inv[i], stdinv[i]);
-            ok = false;
-        }
-    }
-
-    if ok {
-        println!("Generated tables match the canonical Verhoeff tables.");
-    } else {
-        println!("Some tables did NOT match the canonical Verhoeff tables.");
-    }
-}
-
 // -------------------- Verhoeff operations using the generated tables --------------------
 
-fn verhoeff_validate(num: &str, D: &Vec<Vec<u8>>, P: &Vec<[u8;10]>) -> bool {
+fn verhoeff_validate(num: &str, d: &Vec<Vec<u8>>, p: &Vec<[u8;10]>) -> bool {
     // Process digits from right to left; positions start at 0
     let mut c: usize = 0;
     let digits: Vec<u8> = num.chars()
@@ -252,15 +178,15 @@ fn verhoeff_validate(num: &str, D: &Vec<Vec<u8>>, P: &Vec<[u8;10]>) -> bool {
         .collect();
 
     let mut pos = 0usize; // rightmost digit position 0
-    for &d in digits.iter().rev() {
-        let p = P[pos % 8][d as usize] as usize;
-        c = D[c][p] as usize;
+    for &digit in digits.iter().rev() {
+        let p = p[pos % 8][digit as usize] as usize;
+        c = d[c][p] as usize;
         pos += 1;
     }
     c == 0
 }
 
-fn verhoeff_generate_check_digit(num: &str, D: &Vec<Vec<u8>>, P: &Vec<[u8;10]>, inv: &Vec<u8>) -> Option<u8> {
+fn verhoeff_generate_check_digit(num: &str, d: &Vec<Vec<u8>>, p: &Vec<[u8;10]>, inv: &Vec<u8>) -> Option<u8> {
     let digits: Vec<u8> = num.chars()
         .filter(|ch| ch.is_ascii_digit())
         .map(|ch| ch.to_digit(10).unwrap() as u8)
@@ -268,9 +194,9 @@ fn verhoeff_generate_check_digit(num: &str, D: &Vec<Vec<u8>>, P: &Vec<[u8;10]>, 
 
     let mut c: usize = 0;
     let mut pos = 1usize;
-    for &d in digits.iter().rev() {
-        let p = P[pos % 8][d as usize] as usize;
-        c = D[c][p] as usize;
+    for &digit in digits.iter().rev() {
+        let p = p[pos % 8][digit as usize] as usize;
+        c = d[c][p] as usize;
         pos += 1;
     }
     Some(inv[c])
@@ -279,32 +205,21 @@ fn verhoeff_generate_check_digit(num: &str, D: &Vec<Vec<u8>>, P: &Vec<[u8;10]>, 
 fn main() {
     println!("Building D5 group elements (as permutations on 5 vertices)...");
     let elements = build_group_elements();
-    println!("Elements (as permutations of [0..4]) in canonical labeling:");
-    for (i, e) in elements.iter().enumerate() {
-        println!("  {} -> {:?}", i, e);
-    }
 
     println!("\nBuilding tables D, P, inv from group composition...");
-    let (D, P, inv) = build_tables(&elements);
+    let (d, p, inv) = build_tables(&elements);
 
     println!("\nD (generated):");
-    print_table_d(&D);
+    print_table_d(&d);
     println!("\nP (generated):");
-    print_table_p(&P);
+    print_table_p(&p);
     println!("\ninv (generated):");
     print_inv(&inv);
 
-    println!("\nComparing with canonical Verhoeff tables...");
-    compare_and_print(&D, &P, &inv);
-
-    // quick sanity test: generate check digit and validate
-    let sample = "89462597507"; // arbitrary short number
-    let check = verhoeff_generate_check_digit(sample, &D, &P, &inv).unwrap();
+    let sample = "4568435486";
+    let check = verhoeff_generate_check_digit(sample, &d, &p, &inv).unwrap();
     println!("\nSample: {} -> check digit {}", sample, check);
     let combined = format!("{}{}", sample, check);
-    println!("Combined: {} ; valid? {}", combined, verhoeff_validate(&combined, &D, &P));
-
-    // Another test: known sample (digits can be tested further)
-    // e.g., test that a known correct number passes if you know one.
+    println!("Combined: {} ; valid? {}", combined, verhoeff_validate(&combined, &d, &p));
+    println!("Checking: {}", verhoeff_validate("830070597077", &d, &p))
 }
-
