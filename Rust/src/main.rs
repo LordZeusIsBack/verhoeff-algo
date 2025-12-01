@@ -203,6 +203,8 @@ fn verhoeff_generate_check_digit(num: &str, d: &Vec<Vec<u8>>, p: &Vec<[u8;10]>, 
 }
 
 fn main() {
+    use std::io::{self, Write};
+
     println!("Building D5 group elements (as permutations on 5 vertices)...");
     let elements = build_group_elements();
 
@@ -216,10 +218,56 @@ fn main() {
     println!("\ninv (generated):");
     print_inv(&inv);
 
-    let sample = "4568435486";
-    let check = verhoeff_generate_check_digit(sample, &d, &p, &inv).unwrap();
-    println!("\nSample: {} -> check digit {}", sample, check);
-    let combined = format!("{}{}", sample, check);
-    println!("Combined: {} ; valid? {}", combined, verhoeff_validate(&combined, &d, &p));
-    println!("Checking: {}", verhoeff_validate("830070597077", &d, &p))
+    // Interactive part: read numeric input from the user, compute/check Verhoeff
+    let mut input = String::new();
+    print!("\nEnter a number (any non-digit chars will be ignored). Press Enter for sample: ");
+    io::stdout().flush().unwrap();
+    io::stdin().read_line(&mut input).expect("failed to read line");
+    let input_trim = input.trim();
+
+    // If user pressed Enter with no input, fall back to sample
+    let use_sample = input_trim.is_empty();
+    let raw = if use_sample {
+        let sample = "4568435486";
+        println!("No input given — using sample: {}", sample);
+        sample.to_string()
+    } else {
+        input_trim.to_string()
+    };
+
+    // Filter digits (same behavior as your verhoeff helpers)
+    let digits_only: String = raw.chars().filter(|ch| ch.is_ascii_digit()).collect();
+
+    if digits_only.is_empty() {
+        println!("No digits found in the input. Nothing to compute.");
+        return;
+    }
+
+    // Check if original (digits_only) is already Verhoeff-valid
+    let is_valid = verhoeff_validate(&digits_only, &d, &p);
+
+    // Compute check digit to append to make it Verhoeff-valid
+    let check = verhoeff_generate_check_digit(&digits_only, &d, &p, &inv)
+        .expect("should be able to compute check digit");
+
+    let combined = format!("{}{}", digits_only, check);
+    let combined_valid = verhoeff_validate(&combined, &d, &p);
+
+    println!("\nInput (filtered digits): {}", digits_only);
+    println!("Original valid? {}", is_valid);
+    println!("Check digit to append: {}", check);
+    println!("Combined number: {}  ; valid? {}", combined, combined_valid);
+
+    // "Verhoeffibility": 0 if already valid, 1 if needs one appended digit to become valid
+    let verhoeffibility = if is_valid { 0 } else { 1 };
+    println!("Verhoeffibility (0 = already valid, 1 = needs 1 appended digit): {}", verhoeffibility);
+
+    // Extra helpful hints
+    if is_valid {
+        println!("\nNice — your number is already a Verhoeff number. No change needed.");
+    } else {
+        println!("\nAppended the check digit above to make it a Verhoeff-valid number.");
+        println!("New number: {}", combined);
+        println!("Is the new number valid? {}", combined_valid);
+    }
 }
